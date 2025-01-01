@@ -1,0 +1,44 @@
+# Fichiers de log
+*.log
+
+# Répertoires de logs spécifiques
+airflow/logs/
+dbt_transform/ecommerce/logs/
+
+# Répertoire target de dbt (fichiers générés)
+dbt_transform/ecommerce/target/
+
+# Fichiers compilés et artefacts générés par dbt
+dbt_transform/ecommerce/target/compiled/
+dbt_transform/ecommerce/target/catalog.json
+dbt_transform/ecommerce/target/graph.gpickle
+dbt_transform/ecommerce/target/graph_summary.json
+dbt_transform/ecommerce/target/index.html
+dbt_transform/ecommerce/target/manifest.json
+dbt_transform/ecommerce/target/partial_parse.msgpack
+dbt_transform/ecommerce/target/run/
+dbt_transform/ecommerce/target/run_results.json
+dbt_transform/ecommerce/target/semantic_manifest.json
+
+# Fichiers d'images
+*.png
+
+# Fichiers de configuration sensibles (optionnel)
+# Si `profiles.yml` contient des informations sensibles, décommentez la ligne suivante
+# dbt_transform/profiles/profiles.yml
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Environnements virtuels Python (si applicable)
+venv/
+__pycache__/
+*.pyc
+
+# Autres fichiers générés
+*.pickle
+*.json
+
+# Symlinks spécifiques à Airflow
+airflow/logs/scheduler/latest
