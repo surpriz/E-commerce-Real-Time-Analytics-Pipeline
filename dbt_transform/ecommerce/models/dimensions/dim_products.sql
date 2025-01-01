@@ -11,7 +11,7 @@ WITH product_metrics AS (
     GROUP BY 1
 )
 
-SELECT 
+SELECT DISTINCT  -- Ajout du DISTINCT pour éviter les doublons
     p.product_id,
     p.product_category_name,
     p.product_weight_g,
@@ -24,7 +24,12 @@ SELECT
     m.total_sellers,
     m.avg_price,
     m.min_price,
-    m.max_price
+    m.max_price,
+    CASE  -- Ajout du price_range basé sur avg_price
+        WHEN m.avg_price < 50 THEN 'Low'
+        WHEN m.avg_price < 150 THEN 'Medium'
+        ELSE 'High'
+    END as price_range
 FROM {{ source('staging', 'stg_products') }} p
 LEFT JOIN product_metrics m 
     ON p.product_id = m.product_id

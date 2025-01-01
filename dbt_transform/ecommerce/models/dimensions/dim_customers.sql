@@ -9,12 +9,24 @@ WITH customer_metrics AS (
     GROUP BY 1
 )
 
-SELECT 
+SELECT DISTINCT  -- Ajout du DISTINCT pour éviter les doublons
     c.customer_id,
-    c.customer_unique_id,
-    c.customer_city,
-    c.customer_state,
-    c.customer_zip_code_prefix,
+    FIRST_VALUE(c.customer_unique_id) OVER (
+        PARTITION BY c.customer_id 
+        ORDER BY m.last_order_date DESC
+    ) as customer_unique_id,
+    FIRST_VALUE(c.customer_city) OVER (
+        PARTITION BY c.customer_id 
+        ORDER BY m.last_order_date DESC
+    ) as customer_city,
+    FIRST_VALUE(c.customer_state) OVER (
+        PARTITION BY c.customer_id 
+        ORDER BY m.last_order_date DESC
+    ) as customer_state,
+    FIRST_VALUE(c.customer_zip_code_prefix) OVER (
+        PARTITION BY c.customer_id 
+        ORDER BY m.last_order_date DESC
+    ) as customer_zip_code_prefix,
     m.total_orders,
     m.first_order_date,
     m.last_order_date,
