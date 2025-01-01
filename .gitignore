@@ -1,9 +1,12 @@
 # Fichiers de log
 *.log
 
-# Répertoires de logs spécifiques
+B# Répertoires de logs spécifiques
 airflow/logs/
 dbt_transform/ecommerce/logs/
+
+# Fichiers d'environnement
+.env
 
 # Répertoire target de dbt (fichiers générés)
 dbt_transform/ecommerce/target/
