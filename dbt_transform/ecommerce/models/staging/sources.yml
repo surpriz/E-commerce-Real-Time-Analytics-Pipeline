@@ -1,0 +1,15 @@
+# dbt_transform/ecommerce/models/staging/sources.yml
+version: 2
+
+sources:
+  - name: staging
+    database: ECOMMERCE_DB
+    schema: staging
+    tables:
+      - name: stg_customers
+      - name: stg_orders
+      - name: stg_products
+      - name: stg_sellers
+      - name: stg_order_items
+      - name: stg_order_payments
+      - name: stg_order_reviews

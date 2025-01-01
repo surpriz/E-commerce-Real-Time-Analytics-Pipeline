@@ -1,0 +1,33 @@
+# dbt_transform/ecommerce/models/dimensions/schema.yml
+# dbt_transform/ecommerce/models/dimensions/schema.yml
+version: 2
+
+models:
+  - name: dim_products
+    description: "Table de dimension des produits enrichie avec des métriques de vente"
+    columns:
+      - name: product_id
+        description: "Identifiant unique du produit"
+        tests:
+          - unique
+          - not_null
+
+      - name: product_category_name
+        description: "Catégorie du produit"
+
+      - name: product_weight_g
+        description: "Poids du produit en grammes"
+
+      - name: total_orders
+        description: "Nombre total de commandes pour ce produit"
+        tests:
+          - not_null
+
+      - name: avg_price
+        description: "Prix moyen du produit sur l'ensemble des commandes"
+
+      - name: avg_basket_value
+        description: "Valeur moyenne du panier quand ce produit est commandé (prix × quantité)"
+        examples:
+          - value: 150.99
+            description: "Un panier moyen de 150.99€ pour ce produit"

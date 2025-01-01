@@ -1,0 +1,13 @@
+ecommerce:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: xfarmgt-lx08599
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: ACCOUNTADMIN
+      database: ECOMMERCE_DB
+      warehouse: ECOMMERCE_WH
+      schema: DWH
+      threads: 4
