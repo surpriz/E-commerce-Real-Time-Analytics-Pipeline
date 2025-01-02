@@ -34,9 +34,11 @@ services:
     ports:
       - "5432:5432"
 
-  # Airflow components with fixed configuration
+  # Construire l'image Airflow personnalisée
   airflow-webserver:
-    image: apache/airflow:2.7.1
+    build:
+      context: ../airflow
+      dockerfile: Dockerfile
     depends_on:
       airflow-init:
         condition: service_completed_successfully
@@ -44,21 +46,24 @@ services:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - AIRFLOW__WEBSERVER__SECRET_KEY=your_secret_key_here
+      - PYTHONPATH=/opt/airflow/scripts
+      - SNOWFLAKE_USER=SURPRIZ13
+      - SNOWFLAKE_PASSWORD=Motdepasse13$
+      - SNOWFLAKE_ACCOUNT=xfarmgt-lx08599
     volumes:
       - ../airflow/dags:/opt/airflow/dags
       - ../airflow/logs:/opt/airflow/logs
+      - ../scripts:/opt/airflow/scripts
+      - ../dbt_transform:/opt/dbt_transform  # Nouveau volume pour DBT
+      - ~/.kaggle:/home/airflow/.kaggle
     ports:
       - "8080:8080"
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
     command: webserver
 
   airflow-scheduler:
-    image: apache/airflow:2.7.1
+    build:
+      context: ../airflow
+      dockerfile: Dockerfile
     depends_on:
       airflow-init:
         condition: service_completed_successfully
@@ -66,9 +71,16 @@ services:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - PYTHONPATH=/opt/airflow/scripts
+      - SNOWFLAKE_USER=SURPRIZ13
+      - SNOWFLAKE_PASSWORD=Motdepasse13$
+      - SNOWFLAKE_ACCOUNT=xfarmgt-lx08599
     volumes:
       - ../airflow/dags:/opt/airflow/dags
       - ../airflow/logs:/opt/airflow/logs
+      - ../scripts:/opt/airflow/scripts
+      - ../dbt_transform:/opt/dbt_transform  # Nouveau volume pour DBT
+      - ~/.kaggle:/home/airflow/.kaggle
     command: scheduler
 
   airflow-init:

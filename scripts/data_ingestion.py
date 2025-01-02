@@ -58,8 +58,19 @@ class DataIngestion:
         
     def upload_to_snowflake(self, file_path, table_name):
         """Upload un fichier CSV vers Snowflake"""
+        conn = None
         try:
+            # Vérification des paramètres de connexion
+            logging.info("Configuration Snowflake:")
+            for key, value in self.snowflake_config.items():
+                if key != 'password':
+                    logging.info(f"{key}: {value}")
+                    
+            # Tentative de connexion
+            logging.info("Tentative de connexion à Snowflake...")
             conn = connect(**self.snowflake_config)
+            logging.info("Connexion à Snowflake réussie")
+            
             cur = conn.cursor()
             logging.info(f"Chargement du fichier {file_path} vers la table {table_name}")
             
@@ -106,6 +117,34 @@ class DataIngestion:
         finally:
             if conn:
                 conn.close()
+                logging.info("Connexion Snowflake fermée")
+
+    # Ajoutez cette méthode à votre classe DataIngestion
+    def process_all_files(self):
+        """Traite tous les fichiers du dataset"""
+        try:
+            logging.info("Début du traitement de tous les fichiers")
+            
+            # Les fichiers sont déjà présents, pas besoin de les télécharger
+            # Mais on peut vérifier leur présence
+            file_mapping = self.get_file_mapping()
+            processed_files = []
+            
+            for file_name, table_name in file_mapping.items():
+                file_path = os.path.join('/opt/airflow/scripts/data/raw', file_name)
+                if os.path.exists(file_path):
+                    logging.info(f"Traitement du fichier: {file_path}")
+                    self.upload_to_snowflake(file_path, table_name)
+                    processed_files.append(file_name)
+                else:
+                    logging.warning(f"Fichier non trouvé: {file_path}")
+            
+            logging.info(f"Fichiers traités avec succès: {processed_files}")
+            return processed_files
+            
+        except Exception as e:
+            logging.error(f"Erreur lors du traitement des fichiers: {str(e)}")
+            raise
 
 def main():
     try:

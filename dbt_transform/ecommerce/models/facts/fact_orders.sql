@@ -1,4 +1,4 @@
--- dbt_transform/ecommerce/models/facts/fact_orders.sql
+-- models/facts/fact_orders.sql
 WITH order_payments AS (
     SELECT 
         order_id,
@@ -9,7 +9,20 @@ WITH order_payments AS (
     GROUP BY 1
 ),
 
-order_reviews AS (
+order_items_agg AS (
+    SELECT 
+        order_id,
+        COUNT(DISTINCT product_id) as unique_products,
+        COUNT(*) as total_items,
+        SUM(price) as total_items_price,
+        SUM(freight_value) as total_freight_value,
+        ARRAY_AGG(product_id) as product_ids,
+        ARRAY_AGG(seller_id) as seller_ids
+    FROM {{ source('staging', 'stg_order_items') }}
+    GROUP BY 1
+),
+
+order_reviews_agg AS (
     SELECT 
         order_id,
         AVG(review_score) as avg_review_score,
@@ -18,41 +31,37 @@ order_reviews AS (
     GROUP BY 1
 )
 
-SELECT 
-    -- Clés
+SELECT DISTINCT
     o.order_id,
     o.customer_id,
-    oi.seller_id,
-    oi.product_id,
-    
-    -- Timestamps
+    o.order_status,
     o.order_purchase_timestamp,
     o.order_approved_at,
     o.order_delivered_carrier_date,
     o.order_delivered_customer_date,
     o.order_estimated_delivery_date,
     
-    -- Métriques de commande
-    oi.price as item_price,
-    oi.freight_value as shipping_cost,
-    p.total_payment,
+    -- Métriques des items
+    COALESCE(oi.unique_products, 0) as unique_products,
+    COALESCE(oi.total_items, 0) as total_items,
+    COALESCE(oi.total_items_price, 0) as total_items_price,
+    COALESCE(oi.total_freight_value, 0) as total_freight_value,
+    oi.product_ids,
+    oi.seller_ids,
+    
+    -- Métriques de paiement
+    COALESCE(p.total_payment, 0) as total_payment,
     p.payment_type,
-    p.payment_installments,
+    COALESCE(p.payment_installments, 0) as payment_installments,
     
-    -- Métriques de livraison
-    o.delivery_delay_days,
-    o.is_delivered_on_time,
-    
-    -- Reviews
+    -- Métriques de review
     r.avg_review_score,
-    r.review_count,
+    COALESCE(r.review_count, 0) as review_count,
     
     -- Métriques calculées
-    (oi.price + oi.freight_value) as total_order_value
+    COALESCE(oi.total_items_price, 0) + COALESCE(oi.total_freight_value, 0) as total_order_value
+    
 FROM {{ source('staging', 'stg_orders') }} o
-JOIN {{ source('staging', 'stg_order_items') }} oi 
-    ON o.order_id = oi.order_id
-LEFT JOIN order_payments p 
-    ON o.order_id = p.order_id
-LEFT JOIN order_reviews r 
-    ON o.order_id = r.order_id
+LEFT JOIN order_items_agg oi ON o.order_id = oi.order_id
+LEFT JOIN order_payments p ON o.order_id = p.order_id
+LEFT JOIN order_reviews_agg r ON o.order_id = r.order_id
