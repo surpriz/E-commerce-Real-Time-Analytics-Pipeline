@@ -1,6 +1,30 @@
 version: '3'
 
 services:
+
+  streamlit:
+    build: 
+      context: ../dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
+      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+    volumes:
+      - ../dashboard:/app
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    depends_on:
+      - kafka
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:29092
+
+
   # Kafka and Zookeeper (inchangés)
   zookeeper:
     image: confluentinc/cp-zookeeper:latest

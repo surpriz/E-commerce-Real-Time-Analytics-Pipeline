@@ -1,34 +1,51 @@
 # dbt_transform/ecommerce/models/schema.yml
-version: 2
+# ------- Résumé -------
+# Ce fichier YAML définit le schéma des tables du data warehouse et les tests de qualité 
+# à effectuer sur les colonnes critiques. Il décrit la structure des tables de faits et dimensions,
+# ainsi que les contraintes d'intégrité à vérifier (unicité, non-nullité).
+
+version: 2  # Version du schéma dbt
 
 models:
-  - name: fact_orders
-    description: "Table de faits des commandes"
+  # Définition de la table de faits des commandes
+  - name: fact_orders  # Nom de la table
+    description: "Table de faits des commandes"  # Description explicite de la table
     columns:
+      # Colonne identifiant de commande
       - name: order_id
-        tests:
-          - unique
-          - not_null
+        tests:  # Tests de qualité sur cette colonne
+          - unique     # Vérifie que chaque order_id est unique
+          - not_null   # Vérifie qu'aucun order_id n'est null
+      
+      # Colonne valeur totale de la commande
       - name: total_order_value
         tests:
-          - not_null
+          - not_null   # Vérifie que chaque commande a une valeur non nulle
 
+  # Définition de la table dimension clients
   - name: dim_customers
     columns:
+      # Colonne identifiant client
       - name: customer_id
         tests:
-          - unique
-          - not_null
+          - unique     # Vérifie que chaque customer_id est unique
+          - not_null   # Vérifie qu'aucun customer_id n'est null
+      
+      # Colonne ville du client
       - name: customer_city
         tests:
-          - not_null
+          - not_null   # Vérifie que chaque client a une ville renseignée
 
+  # Définition de la table dimension produits
   - name: dim_products
     columns:
+      # Colonne identifiant produit
       - name: product_id
         tests:
-          - unique
-          - not_null
+          - unique     # Vérifie que chaque product_id est unique
+          - not_null   # Vérifie qu'aucun product_id n'est null
+      
+      # Colonne catégorie de produit
       - name: product_category_name
         tests:
-          - not_null
+          - not_null   # Vérifie que chaque produit a une catégorie
