@@ -1,231 +1,148 @@
-# 🚀 E-commerce Real-Time Analytics Pipeline
+# E-commerce Real-Time Analytics Pipeline
 
-![Architecture Overview](diagram-link-placeholder)
+![Dashboard Screenshot](./docs/images/dashboard.png)
 
-Un pipeline de données moderne pour analyser les ventes e-commerce en temps réel, construit avec Kafka, Snowflake, et DBT.
+Une solution complète d'analyse de données e-commerce combinant données historiques et temps réel, construite avec Kafka, Snowflake, DBT et Streamlit.
 
-## 📋 Table des matières
+## 📋 Vue d'ensemble
 
-- [Vue d'ensemble](#vue-densemble)
-- [Architecture](#architecture)
-- [Prérequis](#prérequis)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Utilisation](#utilisation)
-- [Structure du projet](#structure-du-projet)
-- [Développement](#développement)
-- [Monitoring](#monitoring)
-- [Contribution](#contribution)
-- [Licence](#licence)
+Ce projet met en place un pipeline de données complet pour analyser les ventes e-commerce selon deux axes :
+1. **Analyse historique** : Traitement des données passées via Kaggle
+2. **Analyse temps réel** : Streaming des nouvelles commandes via Kafka
 
-## 🎯 Vue d'ensemble
+### Technologies utilisées
 
-Ce projet implémente un pipeline de données complet pour analyser les ventes e-commerce en temps quasi-réel. Il combine :
-- Ingestion de données en temps réel avec Kafka
-- Stockage et traitement dans Snowflake
-- Transformations et modélisation avec DBT
-- Visualisation via des dashboards BI
-
-### Fonctionnalités principales
-- ⚡ Streaming temps réel des événements de vente
-- 📊 Modélisation dimensionnelle (Star Schema)
-- 🔄 Transformations automatisées avec DBT
-- 📈 Dashboards de monitoring en temps réel
-- 🔍 Analyses avancées des performances de vente
+- **Apache Kafka** : Streaming des données temps réel
+- **Snowflake** : Data Warehouse cloud
+- **DBT** : Transformation et modélisation des données
+- **Streamlit** : Dashboard de visualisation
+- **Airflow** : Orchestration des tâches
+- **Docker** : Conteneurisation des services
 
 ## 🏗 Architecture
 
-```mermaid
-graph TD
-    A[Sources de données] --> B[Kafka]
-    A --> C[Snowflake Stage]
-    B --> D[Consumer Stream]
-    D --> E[Snowflake RAW]
-    C --> E
-    E --> F[DBT Transformations]
-    F --> G[Snowflake DWH]
-    G --> H[Dashboard BI]
+Le pipeline est composé de deux flux principaux :
+
+### 1. Flux Historique
+```
+Kaggle Dataset -> Python Script -> Snowflake (RAW) -> DBT -> Snowflake (DWH)
 ```
 
-### Components principaux
-- **Sources de données**
-  - Événements e-commerce en temps réel
-  - Données historiques (Kaggle datasets)
-  - APIs externes (taux de change, météo)
-  
-- **Pipeline d'ingestion**
-  - Kafka pour le streaming temps réel
-  - Batch imports pour les données historiques
-  
-- **Data Warehouse**
-  - Snowflake comme stockage principal
-  - Modèle en étoile optimisé
-  
-- **Transformations**
-  - DBT pour l'orchestration des transformations
-  - Tests de qualité automatisés
-  - Documentation auto-générée
+### 2. Flux Temps Réel
+```
+Kafka Producer -> Kafka -> Kafka Consumer -> Snowflake (RAW) -> DBT -> Snowflake (DWH)
+```
 
-## ⚙️ Prérequis
+Les deux flux alimentent le même modèle de données final, permettant une analyse unifiée via le dashboard Streamlit.
 
-- Docker et Docker Compose
-- Python 3.9+
-- Compte Snowflake
-- Compte DBT Cloud (optionnel)
-- Un outil BI (Metabase, Tableau, etc.)
+## ⚙️ Installation
 
-## 🛠 Installation
-
-1. **Cloner le repo**
+1. **Prérequis**
 ```bash
-git clone https://github.com/username/ecommerce-analytics
-cd ecommerce-analytics
+# Installation des dépendances système
+python 3.9+
+docker
+docker-compose
 ```
 
-2. **Créer l'environnement virtuel**
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-.\venv\Scripts\activate   # Windows
-```
+2. **Configuration**
 
-3. **Installer les dépendances**
-```bash
-pip install -r requirements.txt
-```
-
-4. **Lancer l'infrastructure**
-```bash
-docker-compose up -d
-```
-
-## ⚡ Configuration
-
-1. **Variables d'environnement**
-Créer un fichier `.env` à la racine :
+Créez un fichier `.env` à la racine :
 ```env
-# Kafka
-KAFKA_BOOTSTRAP_SERVERS=localhost:9092
-
-# Snowflake
-SNOWFLAKE_ACCOUNT=your_account
-SNOWFLAKE_USER=your_user
-SNOWFLAKE_PASSWORD=your_password
-SNOWFLAKE_WAREHOUSE=your_warehouse
-SNOWFLAKE_DATABASE=your_database
-
-# API Keys
-EXCHANGE_RATE_API_KEY=your_key
+SNOWFLAKE_USER=votre_user
+SNOWFLAKE_PASSWORD=votre_password
+SNOWFLAKE_ACCOUNT=votre_account
 ```
 
-2. **Configuration DBT**
-Modifier `profiles.yml` :
-```yaml
-ecommerce:
-  target: dev
-  outputs:
-    dev:
-      type: snowflake
-      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
-      user: "{{ env_var('SNOWFLAKE_USER') }}"
-      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
-      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE') }}"
-      database: "{{ env_var('SNOWFLAKE_DATABASE') }}"
+3. **Démarrage des services**
+```bash
+# Lancer l'infrastructure
+docker-compose up -d
+
+# Vérifier les services
+docker-compose ps
 ```
 
 ## 🚀 Utilisation
 
-1. **Démarrer le producteur Kafka**
+### 1. Ingestion des données historiques
+
 ```bash
-python src/producers/order_producer.py
+# Activation de l'environnement virtuel
+cd scripts/kafka_scripts
+python -m venv venv
+source venv/bin/activate
+
+# Exécution du script d'ingestion
+python data_ingestion.py
 ```
 
-2. **Lancer le consumer**
+### 2. Flux temps réel
+
 ```bash
-python src/consumers/snowflake_consumer.py
+# Terminal 1 : Producer
+python order_producer.py
+
+# Terminal 2 : Consumer
+python order_consumer.py
 ```
 
-3. **Exécuter les transformations DBT**
+### 3. Transformations DBT
+
+Les transformations DBT créent :
+- Dimensions (customers, products, sellers)
+- Faits (orders)
+
 ```bash
-cd dbt
-dbt deps
+# Exécution des transformations
 dbt run
 dbt test
 ```
 
-4. **Accéder aux dashboards**
-- Ouvrir votre outil BI
-- Connecter à Snowflake avec les credentials fournis
-- Importer les dashboards depuis `dashboards/`
+### 4. Dashboard
+
+Le dashboard est accessible à :
+- http://localhost:8501 (Streamlit)
+- http://localhost:9000 (Kafdrop - monitoring Kafka)
+- http://localhost:8080 (Airflow)
+
+## 📊 Monitoring
+
+Le projet inclut plusieurs points de monitoring :
+- **Kafdrop** : Visualisation des topics et messages Kafka
+- **Airflow** : Supervision des tâches et pipelines
+- **Streamlit** : Dashboard temps réel avec alertes
 
 ## 📁 Structure du projet
 
 ```
-ecommerce-analytics/
-├── src/
-│   ├── producers/          # Kafka producers
-│   ├── consumers/          # Kafka consumers
-│   └── utils/              # Utilitaires communs
-├── dbt/
-│   ├── models/
-│   │   ├── staging/       # Tables de staging
-│   │   ├── intermediate/  # Tables intermédiaires
-│   │   └── marts/        # Tables finales
-│   ├── tests/            # Tests personnalisés
-│   └── macros/           # Macros DBT
+ecommerce_pipeline/
+├── airflow/
+│   └── dags/                # DAGs Airflow
+├── data/
+│   └── raw/                 # Données Kaggle
+├── dbt_transform/
+│   ├── models/             # Modèles DBT
+│   └── profiles/           # Configuration DBT
 ├── docker/
-│   └── docker-compose.yml
-├── dashboards/           # Templates BI
-├── docs/                 # Documentation
-└── tests/               # Tests unitaires
+│   └── docker-compose.yml  # Configuration Docker
+└── scripts/
+    └── kafka_scripts/      # Scripts Python
 ```
 
-## 🔧 Développement
+## 🔍 Points clés
 
-### Tests
-```bash
-# Tests unitaires
-pytest tests/
-
-# Tests DBT
-cd dbt
-dbt test
-
-# Linting
-black src/
-flake8 src/
-```
-
-### CI/CD
-Le projet utilise GitHub Actions pour :
-- Exécuter les tests automatiquement
-- Vérifier le style du code
-- Déployer DBT en production
-- Générer la documentation
-
-## 📊 Monitoring
-
-- **Métriques Kafka** : Prometheus + Grafana
-- **Logs** : ELK Stack
-- **Alerting** : Configuration dans `monitoring/alerts.yml`
+- **Modèle de données** : Structure en étoile pour optimiser les analyses
+- **Temps réel** : Latence < 5 secondes pour les nouvelles commandes
+- **Scalabilité** : Architecture distribuée via Kafka et Snowflake
+- **Monitoring** : Alertes sur pics de vente et anomalies
+- **Documentation** : Auto-générée via DBT
 
 ## 🤝 Contribution
 
+Les contributions sont les bienvenues ! N'hésitez pas à :
 1. Fork le projet
-2. Créer une nouvelle branche (`git checkout -b feature/amazing-feature`)
-3. Commit les changements (`git commit -m 'Add amazing feature'`)
-4. Push la branche (`git push origin feature/amazing-feature`)
+2. Créer une branche (`git checkout -b feature/amazing-feature`)
+3. Commit vos changements (`git commit -m 'Add amazing feature'`)
+4. Push vers la branche (`git push origin feature/amazing-feature`)
 5. Ouvrir une Pull Request
-
-## 📝 Licence
-
-Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
----
-
-## 🙋‍♂️ Support
-
-Pour toute question ou problème :
-- 📧 Ouvrir une issue
-- 💬 Contacter l'équipe Data
-- 📚 Consulter la [documentation complète](docs/)

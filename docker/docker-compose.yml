@@ -1,72 +1,84 @@
-version: '3'
+# ------- Résumé -------
+# Ce fichier docker-compose orchestre plusieurs services nécessaires à une architecture de data pipeline.
+# Il déploie et configure les éléments suivants :
+# - Un tableau de bord interactif via Streamlit.
+# - Kafka pour la gestion de messages en temps réel avec Zookeeper.
+# - Airflow pour orchestrer les pipelines de données.
+# - PostgreSQL pour stocker les métadonnées d'Airflow.
+# - DBT pour les transformations de données.
+# - Kafdrop pour visualiser les topics Kafka.
 
-services:
+version: '3'  # Version du format docker-compose utilisé.
 
+services:  # Définition des services Docker à orchestrer.
+
+  # ------ Service Streamlit ------
   streamlit:
-    build: 
-      context: ../dashboard
-      dockerfile: Dockerfile
+    build:  # Construit l'image Docker à partir d'un Dockerfile spécifique.
+      context: ../dashboard  # Emplacement du Dockerfile dans le dossier dashboard.
+      dockerfile: Dockerfile  # Nom du Dockerfile à utiliser.
     ports:
-      - "8501:8501"
-    environment:
+      - "8501:8501"  # Expose Streamlit sur le port 8501 (port par défaut de Streamlit).
+    environment:  # Variables d'environnement pour la connexion à Snowflake.
       - SNOWFLAKE_USER=${SNOWFLAKE_USER}
       - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
       - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
     volumes:
-      - ../dashboard:/app
+      - ../dashboard:/app  # Monte le dossier local 'dashboard' dans le conteneur à '/app'.
 
+  # ------ Service Kafdrop ------
   kafdrop:
-    image: obsidiandynamics/kafdrop:latest
-    depends_on:
+    image: obsidiandynamics/kafdrop:latest  # Utilisation d'une image Docker prête pour Kafdrop.
+    depends_on:  # Démarre ce service uniquement après Kafka.
       - kafka
     ports:
-      - "9000:9000"
+      - "9000:9000"  # Interface web de Kafdrop disponible sur le port 9000.
     environment:
-      KAFKA_BROKERCONNECT: kafka:29092
+      KAFKA_BROKERCONNECT: kafka:29092  # Connexion de Kafdrop à Kafka via le port interne 29092.
 
-
-  # Kafka and Zookeeper (inchangés)
+  # ------ Service Zookeeper ------
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+    image: confluentinc/cp-zookeeper:latest  # Image officielle de Zookeeper (nécessaire pour Kafka).
+    environment:  # Configuration de Zookeeper.
+      ZOOKEEPER_CLIENT_PORT: 2181  # Port client Zookeeper.
+      ZOOKEEPER_TICK_TIME: 2000  # Délai en millisecondes pour la synchronisation.
     ports:
-      - "2181:2181"
+      - "2181:2181"  # Expose Zookeeper sur le port 2181.
 
+  # ------ Service Kafka ------
   kafka:
-    image: confluentinc/cp-kafka:latest
-    depends_on:
+    image: confluentinc/cp-kafka:latest  # Image officielle de Kafka.
+    depends_on:  # Kafka dépend de Zookeeper pour fonctionner.
       - zookeeper
     ports:
-      - "9092:9092"
-    environment:
+      - "9092:9092"  # Expose Kafka sur le port 9092 (pour communication externe).
+    environment:  # Configuration de Kafka.
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181  # Connexion de Kafka à Zookeeper.
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092  # Communication interne et externe.
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT  # Communication interne des brokers Kafka.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1  # Facteur de réplication minimal (pour un seul broker).
 
-  # PostgreSQL for Airflow
+  # ------ Service PostgreSQL (Base de données pour Airflow) ------
   postgres:
-    image: postgres:13
-    environment:
+    image: postgres:13  # Image officielle de PostgreSQL (version 13).
+    environment:  # Création de la base de données Airflow.
       - POSTGRES_USER=airflow
       - POSTGRES_PASSWORD=airflow
       - POSTGRES_DB=airflow
     ports:
-      - "5432:5432"
+      - "5432:5432"  # Expose PostgreSQL sur le port 5432 (par défaut).
 
-  # Construire l'image Airflow personnalisée
+  # ------ Service Airflow Webserver ------
   airflow-webserver:
-    build:
-      context: ../airflow
+    build:  # Construit une image Docker personnalisée pour Airflow.
+      context: ../airflow  # Dossier contenant le Dockerfile d'Airflow.
       dockerfile: Dockerfile
-    depends_on:
+    depends_on:  # Attend que l'initialisation d'Airflow soit terminée.
       airflow-init:
         condition: service_completed_successfully
-    environment:
+    environment:  # Configuration d'Airflow (utilisation de PostgreSQL et Snowflake).
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
@@ -75,15 +87,16 @@ services:
       - SNOWFLAKE_PASSWORD=Motdepasse13$
       - SNOWFLAKE_ACCOUNT=xfarmgt-lx08599
     volumes:
-      - ../airflow/dags:/opt/airflow/dags
-      - ../airflow/logs:/opt/airflow/logs
-      - ../scripts:/opt/airflow/scripts
-      - ../dbt_transform:/opt/dbt_transform  # Nouveau volume pour DBT
-      - ~/.kaggle:/home/airflow/.kaggle
+      - ../airflow/dags:/opt/airflow/dags  # DAGs pour Airflow.
+      - ../airflow/logs:/opt/airflow/logs  # Logs d'Airflow.
+      - ../scripts:/opt/airflow/scripts  # Scripts personnalisés.
+      - ../dbt_transform:/opt/dbt_transform
+      - ~/.kaggle:/home/airflow/.kaggle  # Monte la config Kaggle.
     ports:
-      - "8080:8080"
-    command: webserver
+      - "8080:8080"  # Interface web Airflow accessible sur le port 8080.
+    command: webserver  # Démarre le serveur web d'Airflow.
 
+  # ------ Service Airflow Scheduler ------
   airflow-scheduler:
     build:
       context: ../airflow
@@ -93,37 +106,22 @@ services:
         condition: service_completed_successfully
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - PYTHONPATH=/opt/airflow/scripts
-      - SNOWFLAKE_USER=SURPRIZ13
-      - SNOWFLAKE_PASSWORD=Motdepasse13$
-      - SNOWFLAKE_ACCOUNT=xfarmgt-lx08599
     volumes:
       - ../airflow/dags:/opt/airflow/dags
-      - ../airflow/logs:/opt/airflow/logs
-      - ../scripts:/opt/airflow/scripts
-      - ../dbt_transform:/opt/dbt_transform  # Nouveau volume pour DBT
-      - ~/.kaggle:/home/airflow/.kaggle
-    command: scheduler
+    command: scheduler  # Lance le scheduler d'Airflow.
 
+  # ------ Service Airflow Init ------
   airflow-init:
-    image: apache/airflow:2.7.1
+    image: apache/airflow:2.7.1  # Image officielle pour initialiser Airflow.
     depends_on:
-      - postgres
+      - postgres  # PostgreSQL doit être disponible avant l'init.
     environment:
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - _AIRFLOW_DB_UPGRADE=true
-      - _AIRFLOW_WWW_USER_CREATE=true
-      - _AIRFLOW_WWW_USER_USERNAME=airflow
-      - _AIRFLOW_WWW_USER_PASSWORD=airflow
-    command: version
+      - _AIRFLOW_DB_UPGRADE=true  # Mise à jour de la base de données Airflow.
+    command: version  # Affiche la version pour vérifier l'installation.
 
-  # DBT service (inchangé)
+  # ------ Service DBT (Transformation de données) ------
   dbt:
-    build: 
+    build:
       context: ../dbt_transform
       dockerfile: Dockerfile
     volumes:
@@ -132,4 +130,3 @@ services:
     environment:
       - SNOWFLAKE_USER=${SNOWFLAKE_USER}
       - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
-      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
