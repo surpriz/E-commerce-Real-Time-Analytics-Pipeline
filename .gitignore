@@ -24,11 +24,11 @@ dbt_transform/ecommerce/target/run_results.json
 dbt_transform/ecommerce/target/semantic_manifest.json
 
 # Fichiers d'images
-*.png
+#*.png
 
 # Fichiers de configuration sensibles (optionnel)
 # Si `profiles.yml` contient des informations sensibles, décommentez la ligne suivante
-# dbt_transform/profiles/profiles.yml
+dbt_transform/profiles/profiles.yml
 
 # Fichiers système
 .DS_Store
